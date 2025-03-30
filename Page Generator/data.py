@@ -1,5 +1,6 @@
 import requests
 import re
+import json
 
 
 def load_data(url="http://orteil.dashnet.org/legacy/data.js"):
@@ -47,6 +48,9 @@ def create_infobox(name):
         if not match:
             return "Invalid input."
         game_object = re.search(r"(?:.*?\n){" + match[1] + "}", data[match.span()[1] + 1:])[0]
+    print("Game Object:\n" + game_object + "\n\n")
+    json_objectify(game_object)
+    #print("Game Object:\n" + objectify(game_object) + "\n\n")
     valid_types = ['Res', 'Unit', 'Tech', 'Trait', 'Policy', 'Achiev']
     data_type = re.search(r"new G\.(.+?)\({", game_object)[1]
     if data_type not in valid_types:
@@ -89,7 +93,8 @@ def create_infobox(name):
     # TODO: StartWith
     object_start_with = re.search(r"startWith:(true|\d+)", game_object)
     if object_start_with:
-        print(object_start_with[0])
+        pass #TODO
+        #print(object_start_with[0])
     # LimitPer
     object_limit_per = re.search(r"limitPer:{('.+?':\d+,?)},", game_object)
     if object_limit_per:
@@ -104,6 +109,73 @@ def create_infobox(name):
     # TODO: Maybe implement category and partOf
     infobox += '}}'
     return infobox
+
+
+def json_objectify(text_input):
+    text_input = re.sub(r"^.*?(?={)", "", text_input)  # Remove any text before the first {
+    text_input = re.sub(r"\/\/.+$", "", text_input, flags=re.MULTILINE)  # Remove single line comments
+    text_input = re.sub("/\\*.+?\\*/", "", text_input, flags=re.DOTALL)  # Remove multiline comments
+
+    # TURNS OBJECT ENTRIES INTO THE STRING FORMAT
+    def string_replace(match):
+        return '"' + match[1] + '":'
+    replaced_input = re.sub(r"([a-zA-Z]+?[^']):", string_replace, text_input)
+
+    # CAPTURES NUMBERS, TURNS THEM INTO STRINGS
+    def num_replace(match):
+        print("Test:" + match[1])
+        return ":\"" + match[1] + "\""
+    replaced_input = re.sub(r":((?:\d|\/|\.)+)", num_replace, replaced_input, flags=re.DOTALL)
+    print("Replaced Input:\n" + replaced_input)
+
+    replaced_input = replaced_input.replace("'", '"')
+    replaced_input = replaced_input.replace("\n", '')
+    replaced_input = replaced_input.replace("\t", '')
+    replaced_input = replaced_input.replace(",}", '}')
+    replaced_input = replaced_input.replace(",]", ']')
+
+    replaced_input = replaced_input.replace(":G.MODE_OFF", ":\"G.MODE_OFF\"")
+
+    while True:
+        new = remove_function(replaced_input)
+        if not new:
+            break
+        else:
+            replaced_input = new
+
+
+
+    print(replaced_input)
+    json_object = json.loads(replaced_input)
+    return json_object
+
+
+def remove_function(text_input):
+    func_location = re.search(r"(?<!\")function\(", text_input)
+    if func_location:
+        function_text = find_function(text_input, func_location.start())
+        new_function_text = '"' + function_text.replace('"','\\"') + '"'
+        print(function_text)
+        print(new_function_text)
+
+        return text_input.replace(function_text, new_function_text)
+    else:
+        return False
+
+
+def find_function(text_input, start):
+    encountered = False
+    curly_brackets = 0
+    counter = start
+    while (curly_brackets > 0) or (encountered == False):
+        if text_input[counter] == '{':
+            encountered = True
+            curly_brackets += 1
+        elif text_input[counter] == '}':
+            curly_brackets -= 1
+        counter += 1
+
+    return text_input[start:counter]
 
 
 if __name__ == '__main__':
