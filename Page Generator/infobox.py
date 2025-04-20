@@ -57,7 +57,6 @@ def create_page(name, game_data):
         text = text.rstrip(', ')
         text += '\n'
 
-    # TODO: Effects
     # Use
     if ('use' in object_keys) and (len(game_object['use']) > 0):
         text += '|uses = '
@@ -134,7 +133,7 @@ def create_page(name, game_data):
             else:
                 print("Unknown effect type: " + game_object['effects'][i]['type'])
 
-    # TODO
+    # Gathering
     if gathering:
         text += "=== Gathering ===\n"
         text += "{| class=\"wikitable\" \n!Mode \n!Context \n!Product \n"
@@ -143,8 +142,8 @@ def create_page(name, game_data):
         text += "!Frequency (per [[tick]]) \n!Requirements \n"
 
         for i in range(len(game_object['effects'])):
-            if game_object['effects'][i]['type'] == 'gather':
-                effect = game_object['effects'][i]
+            effect = game_object['effects'][i]
+            if effect['type'] == 'gather':
                 effect_keys = effect.keys()
 
                 text += process_mode(game_object, effect, effect_keys)
@@ -191,8 +190,8 @@ def create_page(name, game_data):
         text += "=== Crafting ===\n"
         text += "{| class=\"wikitable\" \n!Mode \n!Materials \n!Product \n!Frequency (per [[tick]]) \n!Requirements \n"
         for i in range(len(game_object['effects'])):
-            if game_object['effects'][i]['type'] == 'convert':
-                effect = game_object['effects'][i]
+            effect = game_object['effects'][i]
+            if effect['type'] == 'convert':
                 effect_keys = effect.keys()
 
                 text += process_mode(game_object, effect, effect_keys)
@@ -222,6 +221,24 @@ def create_page(name, game_data):
                 text += '|' + str(frequency) + '\n'
 
                 text += process_req(game_object, effect, effect_keys)
+        text += "|}\n"
+
+    if provide:
+        text += "=== Provides ===\n"
+        text += "{| class=\"wikitable\" \n!Provides\n"
+        for i in range(len(game_object['effects'])):
+            effect = game_object['effects'][i]
+            if effect['type'] == 'provide':
+                text += '|-\n'
+                effect_keys = effect.keys()
+
+                if ('what' in effect_keys) and (len(effect['what']) > 0):
+                    text += '|'
+                    for product in effect['what']:
+                        text += str(effect['what'][product]) + ' [[' + product.title() + ']], '
+                    text = text.rstrip(', ')
+                    text += '\n'
+
         text += "|}\n"
 
     return text
